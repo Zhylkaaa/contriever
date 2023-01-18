@@ -1,20 +1,20 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=5
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=8
 #SBATCH --gres=gpu:8
-#SBATCH --time=72:00:00
+#SBATCH --time=8:00:00
 #SBATCH --job-name=contriever
-#SBATCH --output=/private/home/gizacard/contriever/logtrain/%A
-#SBATCH --partition=learnlab
+#SBATCH --output=
+#SBATCH --partition=
 #SBATCH --mem=450GB
 #SBATCH --signal=USR1@140
 #SBATCH --open-mode=append
 
 
 port=$(shuf -i 15000-16000 -n 1)
-TDIR="/private/home/gizacard/contriever/encoded-data"
-TRAINDATASETS="${TDIR}/wikisub/ ${TDIR}/cc-netsub/"
+TDIR="/workspace/contriever/encoded-data"
+TRAINDATASETS="${TDIR}/pl_contriever_data/"
 
 rmin=0.05
 rmax=0.5
@@ -25,12 +25,12 @@ POOL=average
 AUG=delete
 PAUG=0.1
 LC=0.
-mo=bert-base-uncased
+mo=allegro/herbert-base-cased
 mp=none
 
 name=$SLURM_JOB_ID-$POOL-rmin$rmin-rmax$rmax-T$T-$QSIZE-$MOM-$mo-$AUG-$PAUG
 
-srun ~gizacard/anaconda3/envs/contriever/bin/python3 train.py \
+srun docker run --gpus all -it --ipc=host --network=host -v ${DATADIR}:${TDIR} -v ${CHECKPOINT_DIR}:/workspace/checkpoint/ ${DOCKER_IMAGE} python train.py \
         --model_path $mp \
         --sampling_coefficient $LC \
         --retriever_model_id $mo --pooling $POOL \
@@ -43,6 +43,6 @@ srun ~gizacard/anaconda3/envs/contriever/bin/python3 train.py \
         --scheduler linear \
         --optim adamw \
         --per_gpu_batch_size 64 \
-        --output_dir /checkpoint/gizacard/contriever/xling/$name \
+        --output_dir /workspace/checkpoint/$name \
         --main_port $port \
 
